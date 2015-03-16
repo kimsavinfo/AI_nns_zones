@@ -1,0 +1,185 @@
+<!-- 
+Auteur : Kim SAVAROCHE
+Date : 06/10/2014
+Sujet : NNS = Nearest Neighbor Search
+Algorithme du Plus proche voisin en Français
+-->
+
+<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>IA 01 - NNS Tree</title>
+		
+		<link href="css/main.css" rel="stylesheet">
+
+		<script src="js/binary_heap.js"></script>
+		<script src="js/kd_tree.js"></script>
+
+		<script type="text/javascript"> 
+		//<![CDATA[ 
+
+		var tree; // Binary tree
+		var canvas; // Canvas where we can draw
+		var offsetX; // Canvas' offset on X dimension
+		var offsetY; // Canvas' offset on Y dimension
+		var context; // 2D context : X dimension and Y dimension
+		var points = []; // Points array
+
+		// Colours parameters
+		var canvasColour = "rgba(65, 105, 225, 0.1)"; // Surface's colour : Royal Blue
+		var pointColour = "#FFD700"; // Point's colour : Gold
+		var clickedColour = "#FF0000"; // Coulur for where the user has clicked : Red
+		var NSSpointColour = "#FFFFFF"; // Nearest Neighbour Search Point colour : White
+
+		function init()
+		{
+			canvas = document.getElementById("canvas");
+			context = canvas.getContext('2d');
+			canvas.addEventListener("mousedown", getNNS, false);
+			offsetX=canvas.offsetLeft;
+			offsetY=canvas.offsetTop;
+
+			points = [];
+			tree = new kdTree(points, ["x", "y"]);
+		};
+
+		// Draw a point where the user clicked
+		// Put forward the nearest neighbour
+		function getNNS(event)
+		{
+			drawTree();
+
+			var coordX = event.pageX - offsetX;
+			var coordY = event.pageY - offsetY;
+			drawPoint(coordX, coordY, 7, clickedColour);
+
+			var nearestPoint = tree.getNearest({x: coordX, y: coordY}, 1)[0][0];
+			drawPoint(nearestPoint.x, nearestPoint.y, 10, NSSpointColour);
+		}
+
+		// Add points with random coordinates
+		// Add them to the tree
+		// Draw them in the canvas
+		function addPoints()
+		{
+			var nbPoints = getNbPointsWanted();
+
+			for (i = 0; i < nbPoints; i++) 
+			{
+				var point = 
+				{
+					x: Math.random()*canvas.width,
+					y: Math.random()*canvas.height
+				};
+				points.push(point);
+				tree.insert(point);
+			}
+			
+			drawTree();
+		}
+
+		function getNbPointsWanted()
+		{
+			var nbPoints = document.getElementById('nbPointsInput').value;
+
+			if(nbPoints < 1)
+			{
+				nbPointsInput.value = 1;
+				nbPoints = 1;
+			}
+
+			return nbPoints;
+		}
+
+		function drawTree() 
+		{
+			context.clearRect(0,0,canvas.width, canvas.height);
+			drawNode(tree.root, [[0, canvas.width], [0, canvas.height]]);
+		}
+
+		function drawNode(node, bounds) 
+		{
+			if(node != null)
+			{
+				drawPoint(node.object.x, node.object.y, 5, pointColour);
+
+				// Get left child point coordinates
+				var leftBounds = [];
+				leftBounds[0] = bounds[0].slice(0);
+				leftBounds[1] = bounds[1].slice(0);
+
+				// Get right child point coordinates
+				var rightBounds = [];
+				rightBounds[0] = bounds[0].slice(0);
+				rightBounds[1] = bounds[1].slice(0);
+
+				// Draw the line
+				context.beginPath();
+				if(node.dimension == 0) 
+				{ 
+					drawLine(node.object.x, bounds[1][0], node.object.x, bounds[1][1])
+
+					leftBounds[0][1] = node.object.x;
+					rightBounds[0][0] = node.object.x;
+				} 
+				else 
+				{
+					drawLine(bounds[0][0], node.object.y, bounds[0][1], node.object.y);
+
+					leftBounds[1][1] = node.object.y;
+					rightBounds[1][0] = node.object.y;
+				}
+				context.closePath();
+				context.stroke();
+
+				// colour the delimited surface
+				drawRectangle(bounds[0][0], bounds[1][0], bounds[0][1]-bounds[0][0], bounds[1][1]-bounds[1][0], canvasColour);
+
+				// Recursive call on left and right children
+				drawNode(node.left, leftBounds);
+				drawNode(node.right, rightBounds);
+			}
+		}
+
+		function drawPoint(coordX, coordY, radius, colour)
+		{
+			context.beginPath();
+			context.fillStyle = colour;
+			context.beginPath();
+			context.arc(coordX, coordY, radius, 0, Math.PI*2);
+			context.closePath();
+			context.fill();
+		}
+
+		function drawLine(moveToX, moveToY, lineToX, lineToY)
+		{
+			context.moveTo(moveToX, moveToY);
+			context.lineTo(lineToX, lineToY);
+		}
+
+		function drawRectangle(moveToX, moveToY, width, height, colour)
+		{
+			context.fillStyle = colour;
+			context.fillRect(moveToX, moveToY, width, height);
+		}
+
+		//]]> 
+		</script> 
+	</head>
+	<body onload="init();">
+		<h1>
+			Click (red point) to find the Nearest Neighbor (white point)
+		</h1>
+		<p>
+			<button onclick="addPoints()">Add a point(s)</button>
+			<input type="text" id="nbPointsInput" value="100">
+		</p>
+
+		<canvas id="canvas" width="800" height="600">
+			alternative content
+		</canvas>
+	</body>
+</html>
